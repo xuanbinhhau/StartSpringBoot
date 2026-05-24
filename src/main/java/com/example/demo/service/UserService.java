@@ -1,11 +1,10 @@
 package com.example.demo.service;
 
-import com.example.demo.UserRepository.RoleRepository;
-import com.example.demo.UserRepository.UserRepository;
+import com.example.demo.repository.RoleRepository;
+import com.example.demo.repository.UserRepository;
 import com.example.demo.dto.request.UserCreationRequest;
 import com.example.demo.dto.request.UserUpdateRequest;
 import com.example.demo.dto.response.UserResponse;
-import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.AppException;
 import com.example.demo.exception.ErrorCode;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @Service
@@ -45,21 +43,17 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         
-//        var userRole = roleRepository.findById("USER").orElseThrow(
-//                () -> new AppException(ErrorCode.UN_AUTHENTICATED)
-//        );
-//        user.setRoles(new HashSet<>() {{
-//            add(userRole);
-//        }});
-
-        User userRole = userRepository.findById("USER").orElseThrow(
+        var userRole = roleRepository.findById("USER").orElseThrow(
+                () -> new AppException(ErrorCode.UN_AUTHENTICATED)
         );
+        user.setRoles(new HashSet<>() {{
+            add(userRole);
+        }});
 
-        user.setRoles(new HashSet<>());
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('USER')")
     public List<UserResponse> getAllUser(){
 
         log.info("In method get Users");

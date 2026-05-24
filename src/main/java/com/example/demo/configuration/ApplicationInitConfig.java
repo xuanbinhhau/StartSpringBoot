@@ -1,7 +1,11 @@
 package com.example.demo.configuration;
 
-import com.example.demo.UserRepository.UserRepository;
+import com.example.demo.repository.RoleRepository;
+import com.example.demo.repository.UserRepository;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.AppException;
+import com.example.demo.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashSet;
+import java.util.Set;
 
 @Configuration
 @RequiredArgsConstructor
@@ -20,20 +25,45 @@ import java.util.HashSet;
 public class ApplicationInitConfig {
 
     PasswordEncoder passwordEncoder;
+    RoleRepository roleRepository;
 
     @Bean
-    ApplicationRunner applicationRunner(UserRepository userRepository){
+    ApplicationRunner applicationRunner(UserRepository userRepository) {
+
         return args -> {
-            if (userRepository.findByUsername("admin").isEmpty()){
-                HashSet<String> roles = new HashSet<>();
-                roles.add("ADMIN");
+
+            Role role = roleRepository.findById("ADMIN")
+                .orElseThrow(() ->
+                        new AppException(ErrorCode.UNCASEGOIZE)
+                );
+
+            Set<Role> roles = new HashSet<>();
+            roles.add(role);
+
+            if (userRepository.findByUsername("admin").isEmpty()) {
+
                 User user = User.builder()
-                        .username("admin")
-                        .password(passwordEncoder.encode("admin"))
-                        .build();
+                    .username("admin")
+                    .password(passwordEncoder.encode("admin"))
+                    .roles(roles)
+                    .build();
+
                 userRepository.save(user);
-                log.warn("admin user has been created with username: 'admin' and deafult password: admin pleae change it");
-            }
-        };
-    }
+
+            log.warn("Admin user has been created with default password: admin");
+        } else {
+
+            User user = userRepository.findByUsername("admin")
+                    .orElseThrow(() ->
+                            new AppException(ErrorCode.UNCASEGOIZE)
+                    );
+
+            user.setRoles(roles);
+
+            userRepository.save(user);
+
+            log.info("Add role ADMIN successfully");
+        }
+    };
+}
 }

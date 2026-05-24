@@ -1,25 +1,20 @@
 package com.example.demo.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
-import java.util.Set;
 
 @Entity
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Role {
+public class InvalidateToken {
     @Id
-     String name;
-     String description;
-
-    @ManyToMany
-    Set<Permisssion> permission;
-
+    String id;
+    Date expritime;
 }

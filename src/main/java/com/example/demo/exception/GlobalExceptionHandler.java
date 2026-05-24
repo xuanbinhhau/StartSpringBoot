@@ -1,31 +1,39 @@
 package com.example.demo.exception;
 
 import com.example.demo.dto.response.ApiResponse;
+import jakarta.validation.ConstraintViolation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.error.Error;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@ControllerAdvice
+import java.util.Map;
+import java.util.Objects;
+
+@Slf4j
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // exception handling
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse> handlingMethodArgumentNotValidException(MethodArgumentNotValidException ex){
-        String enumKey = ex.getFieldError().getDefaultMessage();
+    ResponseEntity<ApiResponse> handlingValidation(MethodArgumentNotValidException exception){
+        String enumKey = exception.getFieldError().getDefaultMessage();
 
         ErrorCode errorCode = ErrorCode.INVALID_KEY;
 
-        try{
+        try {
             errorCode = ErrorCode.valueOf(enumKey);
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e){
 
         }
-
         ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setMessage(errorCode.getMessage());
+
         apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(errorCode.getMessage());
 
         return ResponseEntity.badRequest().body(apiResponse);
     }
@@ -40,6 +48,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+    //exception customer
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse> handlingAppException(AppException ex){
         ErrorCode errorCode = ex.getErrorCode();
@@ -60,13 +69,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiResponse);
     }
 
-//    @ExceptionHandler(value = IllegalArgumentException.class)
-//    ResponseEntity<ApiResponse> handlingIllagalArgumentException(Exception ex){
-//
-//        ApiResponse apiResponse = new ApiResponse();
-//        apiResponse.setCode(ErrorCode.INVALID_KEY.getCode());
-//        apiResponse.setMessage(ErrorCode.INVALID_KEY.getMessage());
-//        return ResponseEntity.badRequest().body(apiResponse);
-//    }
+    @ExceptionHandler(value = IllegalArgumentException.class)
+    ResponseEntity<ApiResponse> handlingIllagalArgumentException(IllegalArgumentException ex){
+
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(ErrorCode.INVALID_KEY.getCode());
+        apiResponse.setMessage(ErrorCode.INVALID_KEY.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
 
 }

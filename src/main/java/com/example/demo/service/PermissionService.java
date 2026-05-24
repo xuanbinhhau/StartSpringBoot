@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.example.demo.UserRepository.PermissionRepository;
+import com.example.demo.repository.PermissionRepository;
 import com.example.demo.dto.request.PermissionRequest;
 import com.example.demo.dto.response.PermissionResponse;
 import com.example.demo.entity.Permisssion;

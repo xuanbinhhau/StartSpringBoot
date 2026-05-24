@@ -1,10 +1,13 @@
 package com.example.demo.service;
 
-import com.example.demo.UserRepository.UserRepository;
+import com.example.demo.repository.InvalidateTokenRepository;
+import com.example.demo.repository.UserRepository;
 import com.example.demo.dto.request.AuthenticationRequest;
 import com.example.demo.dto.request.IntrospectRequest;
+import com.example.demo.dto.request.LogoutRequest;
 import com.example.demo.dto.response.AuthenticationResponse;
 import com.example.demo.dto.response.IntrospectResponse;
+import com.example.demo.entity.InvalidateToken;
 import com.example.demo.entity.User;
 import com.example.demo.exception.AppException;
 import com.example.demo.exception.ErrorCode;
@@ -19,7 +22,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -30,6 +32,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -39,6 +42,7 @@ public class AuthenticationService {
 
     UserRepository repository;
     private final PasswordEncoder passwordEncoder;
+    InvalidateTokenRepository invalidateTokenRepository;
 
     @NonFinal
     @Value("${jwt}")
@@ -69,6 +73,7 @@ public class AuthenticationService {
                 .issuer("mxb.com")
                 .issueTime(new Date())
                 .claim("scope",buildscope(user))
+                .jwtID(UUID.randomUUID().toString())
                 .expirationTime(new Date(Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()))
                 .build();
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
@@ -86,16 +91,14 @@ public class AuthenticationService {
 
         var token = request.getToken();
 
-        JWSVerifier verifier = new MACVerifier(Key.getBytes());
-
-        SignedJWT signedJWT = SignedJWT.parse(token);
-
-        Date expityTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-
-        var verify = signedJWT.verify(verifier);
-
+        boolean isValid = true;
+        try{
+                verifierToken(token);
+            }catch (AppException e){
+                isValid = false;
+        }
         return IntrospectResponse.builder()
-                .valid(verify && expityTime.after(new Date()))
+                .valid(isValid)
                 .build();
 
     }
@@ -110,5 +113,40 @@ public class AuthenticationService {
             });
 
         return stringJoiner.toString();
+    }
+
+    private SignedJWT verifierToken(String token) throws JOSEException, ParseException {
+
+        JWSVerifier verifier = new MACVerifier(Key.getBytes());
+
+        SignedJWT signedJWT = SignedJWT.parse(token);
+
+        Date expityTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        var verified = signedJWT.verify(verifier);
+
+        if (!verified && expityTime.after(new Date())){
+            throw new AppException(ErrorCode.UN_AUTHENTICATED);
+        }
+
+        if (invalidateTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())){
+            throw new  AppException(ErrorCode.UN_AUTHENTICATED);
+        }
+
+
+        return signedJWT;
+    }
+
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+        var signToken = verifierToken(request.getToken());
+
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+        Date expTime = signToken.getJWTClaimsSet().getExpirationTime();
+        InvalidateToken invalidateToken = InvalidateToken.builder()
+                .id(jit)
+                .expritime(expTime)
+                .build();
+
+        invalidateTokenRepository.save(invalidateToken);
     }
 }

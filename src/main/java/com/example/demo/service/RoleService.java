@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
-import com.example.demo.UserRepository.PermissionRepository;
-import com.example.demo.UserRepository.RoleRepository;
+import com.example.demo.repository.PermissionRepository;
+import com.example.demo.repository.RoleRepository;
 import com.example.demo.dto.request.RoleRequest;
 import com.example.demo.dto.response.RoleResponse;
 import com.example.demo.maper.RoleMapper;
