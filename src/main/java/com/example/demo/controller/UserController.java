@@ -25,6 +25,7 @@ public class UserController {
 
     @PostMapping()
     ApiResponse<UserResponse> createUser(@RequestBody @Validated UserCreationRequest request) throws Exception {
+        log.info("Controller create user");
         ApiResponse<UserResponse> api = new ApiResponse<>();
         api.setResult(userService.createUser(request));
         return api;
